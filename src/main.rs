@@ -1,8 +1,8 @@
 use std::sync::Arc;
 use std::time::Duration;
-use chrono::Utc;
 use dotenv::dotenv;
 use tokio::sync::Mutex;
+use tokio::time::Instant;
 use crate::models::dto::calculator_dto::{CalculatorDto, Operation};
 use crate::models::statistics::Statistics;
 
@@ -69,7 +69,7 @@ async fn main() -> std::io::Result<()> {
         let clone_host = Arc::clone(&arc_host);
 
         let task = tokio::spawn(async move {
-            let start_time = Utc::now();
+            let start_time = Instant::now();
 
             let calculator = CalculatorDto {
                 first_number: 1.0,
@@ -92,10 +92,9 @@ async fn main() -> std::io::Result<()> {
             };
 
             if response.status().is_success() {
-                let time_delta = Utc::now() - start_time;
                 let mut lock = clone_stats.lock().await;
                 lock.add_success_response();
-                lock.update_time_stats(time_delta);
+                lock.update_time_stats(start_time.elapsed());
                 drop(lock);
 
                 return 0;
@@ -107,20 +106,18 @@ async fn main() -> std::io::Result<()> {
         vec.push(task);
     }
 
-    let start_session_time = Utc::now();
+    let start_session_time = Instant::now();
     for task in vec {
         let result = task.await;
 
         if result.is_err() || result.unwrap() == 1 {
-            let time_delta = Utc::now() - start_session_time;
-            stats.lock().await.update_total_time_connection(time_delta);
+            stats.lock().await.update_total_time_connection(start_session_time.elapsed());
             stats.lock().await.print_report();
             return Ok(());
         };
     }
 
-    let time_delta = Utc::now() - start_session_time;
-    stats.lock().await.update_total_time_connection(time_delta);
+    stats.lock().await.update_total_time_connection(start_session_time.elapsed());
     stats.lock().await.print_report();
     Ok(())
 }

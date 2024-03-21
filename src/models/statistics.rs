@@ -1,11 +1,11 @@
-use chrono::TimeDelta;
+use tokio::time::Duration;
 
 pub struct Statistics {
     count_success_response: u32,
-    max_time_response: i64,
-    min_time_response: i64,
-    avg_time_response: i64,
-    total_time_server_connection: i64,
+    max_time_response: u128,
+    min_time_response: u128,
+    avg_time_response: u128,
+    total_time_server_connection: u128,
 }
 
 impl Default for Statistics {
@@ -25,8 +25,8 @@ impl Statistics {
         self.count_success_response += 1;
     }
 
-    pub fn update_time_stats(&mut self, time_delta: TimeDelta) {
-        let milliseconds = time_delta.num_milliseconds();
+    pub fn update_time_stats(&mut self, duration: Duration) {
+        let milliseconds = duration.as_millis();
 
         if self.min_time_response == 0 {
             self.min_time_response = milliseconds;
@@ -43,8 +43,8 @@ impl Statistics {
         self.avg_time_response = (self.max_time_response + self.min_time_response) / 2;
     }
 
-    pub fn update_total_time_connection(&mut self, time_delta: TimeDelta) {
-        self.total_time_server_connection = time_delta.num_milliseconds();
+    pub fn update_total_time_connection(&mut self, duration: Duration) {
+        self.total_time_server_connection = duration.as_millis();
     }
 
     pub fn print_report(&self) {
